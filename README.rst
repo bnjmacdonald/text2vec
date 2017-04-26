@@ -9,3 +9,4 @@ This project provides implementations of various methods for converting a chunk 
 | Link to documentation: <NA>
 
 
+This library is NOT optimized for memory-efficient handling of large corpuses (e.g. hundreds of millions of documents).
