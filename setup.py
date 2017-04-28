@@ -11,7 +11,7 @@ setup(
     packages=['text2vec'],
     install_requires=[
         'gensim',
-        'nltk',
+        'nltk==3.2.1',
         'numpy',
       ],
     zip_safe=False

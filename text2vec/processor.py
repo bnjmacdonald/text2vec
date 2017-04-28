@@ -56,9 +56,11 @@ class CorpusProcessor(object):
     Attributes:
         corpus      : list of lists containing each word id in corpus
         corpus_bow  : corpus in bag of words format.
-        dictionary  : id->word mappings.
         documents   : list of str representing each document.
-        speech_query: SpeechQuery object.
+        ids: list of document unique IDs.
+        dictionary  : id->word mappings.
+        
+        
 
     Todo:
         * maybe refactor _preprocess_speeches and _init_corpus so that it is
@@ -70,9 +72,9 @@ class CorpusProcessor(object):
         self.verbose = verbose
         self.corpus = None
         self.corpus_bow = None
-        self.dictionary = None
-        self.ids = None
         self.documents = None
+        self.ids = None
+        self.dictionary = None
 
     def mk_dictionary(self, tokens, **kwargs):
         """creates a gensim dictionary of id->token mappings.
@@ -143,7 +145,8 @@ class CorpusProcessor(object):
         documents = [documents[i] for i in ilocs]
         time1 = time.time()
         if self.verbose:
-            print ('Speech preprocessing took {0:.2f} minutes.'.format((time1 - time0)/60.0))
+            print
+            print('Speech preprocessing took {0:.2f} minutes.'.format((time1 - time0)/60.0))
         return corpus_tokens, ids, documents
 
     def _init_corpus(self, corpus_tokens, ids, documents, **dict_filter_kws):
@@ -175,6 +178,7 @@ class CorpusProcessor(object):
         self.ids = []
         self.documents = []
         token2id = self.dictionary.token2id
+        n_documents = len(corpus_tokens)
         # creates corpus and removes documents with 0 remaining words.
         for i, tokens in enumerate(corpus_tokens):
             bow = self.dictionary.doc2bow(tokens)
@@ -183,8 +187,11 @@ class CorpusProcessor(object):
                 self.corpus.append([token2id[tok] if tok in token2id else token2id['<unk>'] for tok in tokens ] + [token2id['<end>']])
                 self.ids.append(ids[i])
                 self.documents.append(documents[i])
+            if self.verbose and i > 0 and i % 10000 == 0:
+                print('Processed {0} of {1} documents so far...'.format(i, n_documents), end='\r')
         assert(len(self.corpus) == len(self.ids) and len(self.ids) == len(self.documents))
         if self.verbose:
+            print
             print('\nCorpus size:')
             print('{0:15s}: {1}'.format('corpus', len(self.corpus)))
             print('{0:15s}: {1}'.format('corpus_bow', len(self.corpus_bow)))
@@ -265,14 +272,14 @@ class CorpusProcessor(object):
         with open(os.path.join(out_path, 'config.txt'), 'w') as f:
             json.dump(config_kws, f)
 
-    def load(self, input_path, import_format='mm', import_raw=False):
+    def load(self, input_path, import_format='mm', import_documents=False):
         """loads document-term matrix.
         
         Todo:
             * refactor this method so it works with new setup.
         """
         if self.verbose:
-            print('loading corpus...')
+            print('loading corpus bow...')
         if not os.path.isdir(input_path):
             raise RuntimeError('{0} not found.'.format(input_path))
         # loads bag of words corpus.
@@ -289,8 +296,8 @@ class CorpusProcessor(object):
         # loads corpus
         self.corpus = self._load_corpus(input_path)
         # loads documents.
-        if import_raw:
-            self._load_documents(input_path)
+        if import_documents:
+            self.documents = self._load_documents(input_path)
         assert(len(self.corpus) == len(self.ids) and len(self.ids) == len(self.corpus_bow))
         if self.verbose:
             print('loaded corpus with {0} documents.'.format(len(self.corpus)))
@@ -299,10 +306,12 @@ class CorpusProcessor(object):
     def _load_corpus(self, input_path):
         """loads corpus of token ids.
         """
+        if self.verbose:
+            print('loading corpus...')
         with open(os.path.join(input_path, 'corpus.txt'), 'r') as f:
             corpus = []
             for line in f:
-                tokens = line.strip().split(',')
+                tokens = [int(i) for i in line.strip().split(',')]
                 corpus.append(tokens)
         return corpus
 
@@ -315,7 +324,9 @@ class CorpusProcessor(object):
         #     raise RuntimeError('order of ids does not match.')
     
     def _load_documents(self, input_path):
-        with open(os.path.join(input_path, 'documents.json', encoding='utf-8'), 'r') as f:
+        if self.verbose:
+            print('loading documents...')
+        with open(os.path.join(input_path, 'documents.json'), 'r', encoding='utf-8') as f:
             documents = json.load(f)
             # documents = []
             # for line in f:
@@ -323,6 +334,8 @@ class CorpusProcessor(object):
         return documents
 
     def _load_ids(self, input_path):
+        if self.verbose:
+            print('loading ids...')
         with open(os.path.join(input_path, 'ids.json'), 'r') as f:
             ids = json.load(f)
         return ids
@@ -330,4 +343,13 @@ class CorpusProcessor(object):
         #     for line in f:
         #         ids.append(line.strip())
         # self.ids = ids
+    
+    def filter_by_id(self, ids):
+        indices = [ix for ix, i in enumerate(self.ids) if i in ids]
+        self.ids = [self.ids[i] for i in indices]
+        self.corpus = [self.corpus[i] for i in indices]
+        self.corpus_bow = [self.corpus_bow[i] for i in indices]
+        if self.documents is not None:
+            self.documents = [self.documents[i] for i in indices]
+        assert(len(self.corpus) == len(self.ids) and len(self.ids) == len(self.corpus_bow))
 
