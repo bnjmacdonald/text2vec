@@ -11,7 +11,7 @@ corpus = Corpus(out_path=out_path, verbose=1)
 import os
 import time
 from gensim import corpora
-from utils import tokenize
+from .utils import tokenize
 
 class DocCorpus(object):
     """Generates a corpus of gensim TaggedDocument objects.

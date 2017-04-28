@@ -5,47 +5,6 @@ import json
 import string
 import numpy as np
 from gensim import corpora
-from nltk.tokenize import RegexpTokenizer
-from nltk.stem.porter import PorterStemmer
-from nltk.corpus import stopwords
-
-def tokenize(text, tokenizer=None, stem=True, stemmer=None, rm_stop_words=True, stop_words=None, rm_punct=False, punct=None):
-    """tokenizes a document and conducts other preprocessing.
-    
-    Arguments:
-        text: string representing document to be tokenized.
-        tokenizer : tokenizer object.
-        stem : boolean indicating whether stemming should be conducted.
-        stemmer : stemmer object.
-        rm_stop_words : boolean indicating whether stop words should be removed.
-        stop_words : list of stop words to remove.
-        rm_punct : boolean indicating whether punctuation should be removed.
-        punct : string containing punctuation.
-        verbose : boolean indicating whether details should be printed to console.
-
-    Returns:
-        tokens: list of strings representing tokenized document.
-            e.g. ['the', 'sky', 'is', 'blue']
-    """
-    tokens = []
-    if rm_stop_words and stop_words is None:
-        stop_words = stopwords.words('english')
-    if tokenizer is None:
-        tokenizer = RegexpTokenizer(r'\w+')
-    if stem and stemmer is None:
-        stemmer = PorterStemmer()
-    if rm_punct and punct is None:
-        punct = string.punctuation
-    if text is not None and len(text):
-        text = text.lower()
-        tokens = tokenizer.tokenize(text)
-        if rm_stop_words:
-            tokens = [token for token in tokens if token not in stop_words]
-        if stem:
-            tokens = [stemmer.stem(token) for token in tokens]
-        if rm_punct:
-            tokens = [token for token in tokens if token not in punct]
-    return np.array(tokens)
 
 class CorpusProcessor(object):
     """stores corpus data.
@@ -68,8 +27,9 @@ class CorpusProcessor(object):
             possible to add new documents one at a time?
     """
     
-    def __init__(self, verbose=0):
+    def __init__(self, out_path, verbose=0):
         # self.documents = documents
+        self.out_path = out_path
         self.verbose = verbose
         self.corpus = None
         self.corpus_bow = None
@@ -101,11 +61,22 @@ class CorpusProcessor(object):
         dictionary.merge_with(dictionary2)
         self.dictionary = dictionary
 
-    def mk_corpus(self, dict_filter_kws={}, **kwargs):
+    def mk_corpus(self, documents, ids=None, dict_filter_kws={}, **kwargs):
         """constructs the corpus."""
-        corpus_tokens, ids, documents = self._preprocess_documents(**kwargs)
+        # corpus_tokens, ids, documents = self._preprocess_documents(**kwargs)
+        corpus_tokens = self._preprocess_documents(documents, ids, **kwargs)
+        f0 = open(os.path.join(self.out_path, 'corpus.txt'), 'w')
+        f1 = open(os.path.join(self.out_path, 'ids.txt'), 'w')
+        for uid, tokens in corpus_tokens:
+            if len(tokens):
+                f0.write(' '.join(tokens) + '\n')
+                f1.write(str(uid) + '\n')
+        f0.close()
+        f1.close()
+
+        # np.savetxt(os.path.join(self.out_path, 'corpus.txt'), corpus_tokens, delimiter=' ')
         # print(document_ids)
-        self._init_corpus(corpus_tokens, ids, documents, **dict_filter_kws)
+        self._init_corpus(**dict_filter_kws)
 
     def _preprocess_documents(self, documents, ids=None, **tokenize_kws):
         """wrapper for tokenizing, stemming, and removing stop words from text.
@@ -127,38 +98,43 @@ class CorpusProcessor(object):
             documents : list of str. Each element contains raw text of document.
         """
         time0 = time.time()
-        ilocs = []  # stores index positions of documents
-        corpus_tokens = []
-        documents_subset = []
-        n_documents = len(documents)
+        # ilocs = []  # stores index positions of documents
+        # corpus_tokens = []
+        # documents_subset = []
+        if self.verbose:
+            print('Preprocessing documents and saving to disk...')
+        # n_documents = len(documents)
         for i, text in enumerate(documents):
             doc_tokens = tokenize(text=text, **tokenize_kws)
-            if self.verbose and i > 0 and i % 10000 == 0:
-                print('Preprocessed {0} of {1} documents so far...'.format(i, n_documents), end='\r')
-            if len(doc_tokens):
-                corpus_tokens.append(doc_tokens)
-                ilocs.append(i)
-                documents_subset.append(text)
-                # yield (doc_tokens, speech.pk, speech.text)
+            # if self.verbose and i > 0 and i % 10000 == 0:
+            #     print('Preprocessed {0} of {1} documents so far...'.format(i, n_documents), end='\r')
+            # if len(doc_tokens) == 0:
+            #     continue
+            uid = ids[i] if ids is not None else i
+            yield uid, doc_tokens
+            # corpus_tokens.append(doc_tokens)
+            # ilocs.append(i)
+            # documents_subset.append(text)
         # del speech
-        if ids is None:
-            ids = np.hstack(ilocs)
-        else:
-            ids = np.hstack(ids)[ilocs]
-            # ids = [ids[i] for i in ilocs]
-        # ids = np.array(ids)
-        # documents = np.array(documents)[ilocs]
-        documents_subset = np.hstack(documents_subset)
-        # documents = documents[ilocs]
-        # documents = [documents[i] for i in ilocs]
-        # corpus_tokens = np.array(corpus_tokens)
-        time1 = time.time()
-        if self.verbose:
-            print('\n')
-            print('Speech preprocessing took {0:.2f} minutes.'.format((time1 - time0)/60.0))
-        return corpus_tokens, ids, documents_subset
+        # if ids is None:
+        #     ids = np.hstack(ilocs)
+        # else:
+        #     ids = np.hstack(ids)[ilocs]
+        #     # ids = [ids[i] for i in ilocs]
+        # # documents_subset = np.hstack(documents_subset)
 
-    def _init_corpus(self, corpus_tokens, ids, documents, **dict_filter_kws):
+        # # ids = np.array(ids)
+        # # documents = np.array(documents)[ilocs]
+        # # documents = documents[ilocs]
+        # # documents = [documents[i] for i in ilocs]
+        # # corpus_tokens = np.array(corpus_tokens)
+        # time1 = time.time()
+        # if self.verbose:
+        #     print('\n')
+        #     print('Speech preprocessing took {0:.2f} minutes.'.format((time1 - time0)/60.0))
+        # return corpus_tokens, ids, documents_subset
+
+    def _init_corpus(self, **dict_filter_kws):
         """constructs the id->token dictionary and document corpus.
         
         Arguments:
@@ -193,7 +169,7 @@ class CorpusProcessor(object):
             bow = self.dictionary.doc2bow(tokens)
             if len(bow):
                 self.corpus_bow.append(bow)
-                self.corpus.append(np.array([token2id[tok] if tok in token2id else token2id['<unk>'] for tok in tokens ] + [token2id['<end>']]))
+                self.corpus.append(np.array([token2id[tok] if tok in token2id else token2id['<unk>'] for tok in tokens] + [token2id['<end>']]))
                 self.ids.append(ids[i])
                 self.documents.append(documents[i])
             if self.verbose and i > 0 and i % 10000 == 0:
