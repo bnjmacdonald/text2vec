@@ -189,7 +189,7 @@ class CorpusProcessor(object):
             bow = self.dictionary.doc2bow(tokens)
             if len(bow):
                 self.corpus_bow.append(bow)
-                self.corpus.append([token2id[tok] if tok in token2id else token2id['<unk>'] for tok in tokens ] + [token2id['<end>']])
+                self.corpus.append(np.array([token2id[tok] if tok in token2id else token2id['<unk>'] for tok in tokens ] + [token2id['<end>']]))
                 self.ids.append(ids[i])
                 self.documents.append(documents[i])
             if self.verbose and i > 0 and i % 10000 == 0:
@@ -253,7 +253,7 @@ class CorpusProcessor(object):
         """saves corpus to disk."""
         with open(os.path.join(out_path, 'corpus.txt'), 'w') as f:
             for line in self.corpus:
-                f.write(str(line).strip('[]') + '\n')
+                f.write(','.join(line.astype(str)) + '\n')
 
         # digits = len(str(max(self.dictionary)))
         # seqlens = [len(tokens) for tokens in self.corpus]
@@ -320,7 +320,7 @@ class CorpusProcessor(object):
         with open(os.path.join(input_path, 'corpus.txt'), 'r') as f:
             corpus = []
             for line in f:
-                tokens = np.array([int(i) for i in line.strip().split(',')])
+                tokens = np.array(line.strip().split(',')).astype(np.int32)
                 corpus.append(tokens)
         return np.array(corpus)
 
@@ -358,7 +358,7 @@ class CorpusProcessor(object):
         # indices = [ix for ix, i in enumerate(self.ids) if i in ids]
         self.ids = self.ids[keep_indices]
         self.corpus = self.corpus[keep_indices]
-        self.corpus_bow = np.array(list(self.corpus_bow[keep_indices]))
+        self.corpus_bow = np.array(list(self.corpus_bow[keep_indices]))  # Note: kludge.
         if self.documents is not None:
             self.documents = self.documents[keep_indices]
         assert(len(self.corpus) == len(self.ids) and len(self.ids) == len(self.corpus_bow))

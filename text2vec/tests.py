@@ -1,7 +1,7 @@
 """unit tests."""
 
-# import sys
-# sys.path.append('.')
+import sys
+sys.path.append('.')
 import os
 import json
 import settings
@@ -29,6 +29,7 @@ def test_processor():
         # config_kws=config_dict
     )
     corpus.load(input_path=out_path, import_documents=True)
+    return corpus
 
 if __name__ == '__main__':
-    test_processor()
+    corpus = test_processor()
