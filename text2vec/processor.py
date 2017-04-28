@@ -142,11 +142,13 @@ class CorpusProcessor(object):
         if ids is None:
             ids = ilocs
         else:
-            ids = np.array(ids)[ilocs]
+            ids = np.hstack(ids)[ilocs]
             # ids = [ids[i] for i in ilocs]
         ids = np.array(ids)
         documents = np.array(documents)[ilocs]
-        # documents = np.array([documents[i] for i in ilocs])
+        documents = np.hstack(documents)
+        documents = documents[ilocs]
+        # documents = [documents[i] for i in ilocs]
         corpus_tokens = np.array(corpus_tokens)
         time1 = time.time()
         if self.verbose:
