@@ -358,7 +358,7 @@ class CorpusProcessor(object):
         # indices = [ix for ix, i in enumerate(self.ids) if i in ids]
         self.ids = self.ids[keep_indices]
         self.corpus = self.corpus[keep_indices]
-        self.corpus_bow = self.corpus_bow[keep_indices]
+        self.corpus_bow = np.array(list(self.corpus_bow[keep_indices]))
         if self.documents is not None:
             self.documents = self.documents[keep_indices]
         assert(len(self.corpus) == len(self.ids) and len(self.ids) == len(self.corpus_bow))

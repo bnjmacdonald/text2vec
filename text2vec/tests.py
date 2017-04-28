@@ -28,6 +28,7 @@ def test_processor():
         export_documents=True,
         # config_kws=config_dict
     )
+    corpus.load(input_path=out_path, import_documents=True)
 
 if __name__ == '__main__':
     test_processor()
