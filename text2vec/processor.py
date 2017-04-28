@@ -3,6 +3,7 @@ import os
 import time
 import json
 import string
+import numpy as np
 from gensim import corpora
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem.porter import PorterStemmer
@@ -44,7 +45,7 @@ def tokenize(text, tokenizer=None, stem=True, stemmer=None, rm_stop_words=True, 
             tokens = [stemmer.stem(token) for token in tokens]
         if rm_punct:
             tokens = [token for token in tokens if token not in punct]
-    return tokens
+    return np.array(tokens)
 
 class CorpusProcessor(object):
     """stores corpus data.
@@ -141,8 +142,12 @@ class CorpusProcessor(object):
         if ids is None:
             ids = ilocs
         else:
-            ids = [ids[i] for i in ilocs]
-        documents = [documents[i] for i in ilocs]
+            ids = np.array(ids)[ilocs]
+            # ids = [ids[i] for i in ilocs]
+        ids = np.array(ids)
+        documents = np.array(documents)[ilocs]
+        # documents = np.array([documents[i] for i in ilocs])
+        corpus_tokens = np.array(corpus_tokens)
         time1 = time.time()
         if self.verbose:
             print
@@ -189,6 +194,10 @@ class CorpusProcessor(object):
                 self.documents.append(documents[i])
             if self.verbose and i > 0 and i % 10000 == 0:
                 print('Processed {0} of {1} documents so far...'.format(i, n_documents), end='\r')
+        self.ids = np.array(self.ids)
+        self.documents = np.array(self.documents)
+        self.corpus = np.array(self.corpus)
+        self.corpus_bow = np.array(self.corpus_bow)
         assert(len(self.corpus) == len(self.ids) and len(self.ids) == len(self.documents))
         if self.verbose:
             print
@@ -255,14 +264,14 @@ class CorpusProcessor(object):
     def _save_documents(self, out_path):
         """saves documents to disk."""
         with open(os.path.join(out_path, 'documents.json'), 'w', encoding='utf-8') as f:
-            json.dump(self.documents, f)
+            json.dump(self.documents.tolist(), f)
             # for line in self.documents:
             #     f.write(line + '\n')
 
     def _save_ids(self, out_path):
         """saves ids to disk."""
         with open(os.path.join(out_path, 'ids.json'), 'w') as f:
-            json.dump(self.ids, f)
+            json.dump(self.ids.tolist(), f)
             # for line in self.ids:
             #     f.write(line + '\n')
             
@@ -311,9 +320,9 @@ class CorpusProcessor(object):
         with open(os.path.join(input_path, 'corpus.txt'), 'r') as f:
             corpus = []
             for line in f:
-                tokens = [int(i) for i in line.strip().split(',')]
+                tokens = np.array([int(i) for i in line.strip().split(',')])
                 corpus.append(tokens)
-        return corpus
+        return np.array(corpus)
 
         # corpus = pd.read_hdf(os.path.join(input_path, 'corpus.h5'), 'corpus')
         # gp = corpus.groupby('pk').token
@@ -331,14 +340,14 @@ class CorpusProcessor(object):
             # documents = []
             # for line in f:
             #     documents.append(line.strip())
-        return documents
+        return np.array(documents)
 
     def _load_ids(self, input_path):
         if self.verbose:
             print('loading ids...')
         with open(os.path.join(input_path, 'ids.json'), 'r') as f:
             ids = json.load(f)
-        return ids
+        return np.array(ids)
         #     ids = []
         #     for line in f:
         #         ids.append(line.strip())
@@ -346,10 +355,10 @@ class CorpusProcessor(object):
     
     def filter_by_id(self, ids):
         indices = [ix for ix, i in enumerate(self.ids) if i in ids]
-        self.ids = [self.ids[i] for i in indices]
-        self.corpus = [self.corpus[i] for i in indices]
-        self.corpus_bow = [self.corpus_bow[i] for i in indices]
+        self.ids = self.ids[indices]
+        self.corpus = self.corpus[indices]
+        self.corpus_bow = self.corpus_bow[indices]
         if self.documents is not None:
-            self.documents = [self.documents[i] for i in indices]
+            self.documents = self.documents[indices]
         assert(len(self.corpus) == len(self.ids) and len(self.ids) == len(self.corpus_bow))
 
