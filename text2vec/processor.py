@@ -91,7 +91,8 @@ class CorpusProcessor(object):
         Returns:
             None
         """
-
+        if self.verbose:
+            print('constructing dictionary...')
         dictionary = corpora.Dictionary([['<pad>'], ['<unk>'], ['<end>']])
         dictionary2 = corpora.Dictionary(tokens)
         if len(kwargs) is not None:
@@ -128,6 +129,7 @@ class CorpusProcessor(object):
         time0 = time.time()
         ilocs = []  # stores index positions of documents
         corpus_tokens = []
+        documents_subset = []
         n_documents = len(documents)
         for i, text in enumerate(documents):
             doc_tokens = tokenize(text=text, **tokenize_kws)
@@ -136,25 +138,25 @@ class CorpusProcessor(object):
             if len(doc_tokens):
                 corpus_tokens.append(doc_tokens)
                 ilocs.append(i)
-                # documents.append(text)
+                documents_subset.append(text)
                 # yield (doc_tokens, speech.pk, speech.text)
         # del speech
         if ids is None:
-            ids = ilocs
+            ids = np.hstack(ilocs)
         else:
             ids = np.hstack(ids)[ilocs]
             # ids = [ids[i] for i in ilocs]
-        ids = np.array(ids)
+        # ids = np.array(ids)
         # documents = np.array(documents)[ilocs]
-        documents = np.hstack(documents)
-        documents = documents[ilocs]
+        documents_subset = np.hstack(documents_subset)
+        # documents = documents[ilocs]
         # documents = [documents[i] for i in ilocs]
-        corpus_tokens = np.array(corpus_tokens)
+        # corpus_tokens = np.array(corpus_tokens)
         time1 = time.time()
         if self.verbose:
             print('\n')
             print('Speech preprocessing took {0:.2f} minutes.'.format((time1 - time0)/60.0))
-        return corpus_tokens, ids, documents
+        return corpus_tokens, ids, documents_subset
 
     def _init_corpus(self, corpus_tokens, ids, documents, **dict_filter_kws):
         """constructs the id->token dictionary and document corpus.
@@ -196,8 +198,8 @@ class CorpusProcessor(object):
                 self.documents.append(documents[i])
             if self.verbose and i > 0 and i % 10000 == 0:
                 print('Processed {0} of {1} documents so far...'.format(i, n_documents), end='\r')
-        self.ids = np.array(self.ids)
-        self.documents = np.array(self.documents)
+        self.ids = np.hstack(self.ids)
+        self.documents = np.hstack(self.documents)
         self.corpus = np.array(self.corpus)
         self.corpus_bow = np.array(self.corpus_bow)
         assert(len(self.corpus) == len(self.ids) and len(self.ids) == len(self.documents))
