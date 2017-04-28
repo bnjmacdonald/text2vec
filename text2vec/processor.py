@@ -145,14 +145,14 @@ class CorpusProcessor(object):
             ids = np.hstack(ids)[ilocs]
             # ids = [ids[i] for i in ilocs]
         ids = np.array(ids)
-        documents = np.array(documents)[ilocs]
+        # documents = np.array(documents)[ilocs]
         documents = np.hstack(documents)
         documents = documents[ilocs]
         # documents = [documents[i] for i in ilocs]
         corpus_tokens = np.array(corpus_tokens)
         time1 = time.time()
         if self.verbose:
-            print
+            print('\n')
             print('Speech preprocessing took {0:.2f} minutes.'.format((time1 - time0)/60.0))
         return corpus_tokens, ids, documents
 
