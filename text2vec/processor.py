@@ -354,11 +354,12 @@ class CorpusProcessor(object):
         # self.ids = ids
     
     def filter_by_id(self, ids):
-        indices = [ix for ix, i in enumerate(self.ids) if i in ids]
-        self.ids = self.ids[indices]
-        self.corpus = self.corpus[indices]
-        self.corpus_bow = self.corpus_bow[indices]
+        keep_indices = np.in1d(self.ids, ids)
+        # indices = [ix for ix, i in enumerate(self.ids) if i in ids]
+        self.ids = self.ids[keep_indices]
+        self.corpus = self.corpus[keep_indices]
+        self.corpus_bow = self.corpus_bow[keep_indices]
         if self.documents is not None:
-            self.documents = self.documents[indices]
+            self.documents = self.documents[keep_indices]
         assert(len(self.corpus) == len(self.ids) and len(self.ids) == len(self.corpus_bow))
 
