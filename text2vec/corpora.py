@@ -12,7 +12,7 @@ https://rare-technologies.com/data-streaming-in-python-generators-iterators-iter
 import os
 import time
 from gensim import corpora
-from utils import tokenize
+from .utils import tokenize
 
 class DocCorpus(object):
     """Generates a corpus of gensim TaggedDocument objects.
@@ -82,7 +82,7 @@ class Corpus(object):
     def iter_corpus(self):
         for tokens in self.stream_corpus():
             yield tokens
-            
+
     def iter_corpus_bow(self):
         for bow in self.stream_corpus_bow():
             yield bow
