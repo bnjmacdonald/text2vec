@@ -24,7 +24,7 @@ class Lsi(Text2Vec):
                 sprse (list of 2-tuples) format.
         """
         # corpus_bow = matutils.Sparse2Corpus(corpus_csr, documents_columns=False)
-        model = models.LsiModel(corpus=docs, id2word=docs.dictionary, **kwargs)
+        model = models.LsiModel(corpus=docs, **kwargs)  # id2word=docs.dictionary, 
         self.model = model
         # Todo: fix this "pd.DataFrame constructor not properly called" error.
         # self.embeddings = self.get_embeddings(docs, norm=False)

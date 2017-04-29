@@ -79,44 +79,50 @@ class Corpus(object):
             print('{0:15s}: {1}'.format('dictionary', n_dictionary))
         return n_corpus, n_corpus_bow, n_ids, n_documents, n_dictionary
     def stream_corpus(self):
-        try:
-            f0 = open(os.path.join(self.path, 'corpus.txt'), 'r', encoding='utf-8')
-            for line in f0:
-                yield line.strip().split(' ')
-            f0.close()
-        except FileNotFoundError as e:
-            print(e)
+        if not os.path.exists(os.path.join(self.path, 'corpus.txt')):
+            print('corpus.txt does not exist.')
             yield None
+        class Iterable(object):
+            def __iter__(self):
+                f0 = open(os.path.join(self.path, 'corpus.txt'), 'r', encoding='utf-8')
+                for line in f0:
+                    yield line.strip().split(' ')
+                f0.close()
+        return Iterable
     def stream_ids(self):
-        try:
-            f0 = open(os.path.join(self.path, 'ids.txt'), 'r')
-            for line in f0:
-                yield line.strip()
-            f0.close()
-        except FileNotFoundError as e:
-            print(e)
+        if not os.path.exists(os.path.join(self.path, 'ids.txt')):
+            print('ids.txt does not exist.')
             yield None
+        class Iterable(object):
+            def __iter__(self):
+                f0 = open(os.path.join(self.path, 'ids.txt'), 'r')
+                for line in f0:
+                    yield line.strip()
+                f0.close()
+        return Iterable
+        
     def stream_documents(self):
-        try:
-            f0 = open(os.path.join(self.path, 'documents.txt'), 'r', encoding='utf-8')
-            for line in f0:
-                yield line.strip()
-            f0.close()
-        except FileNotFoundError as e:
-            print(e)
+        if not os.path.exists(os.path.join(self.path, 'documents.txt')):
+            print('documents.txt does not exist.')
             yield None
+        class Iterable(object):
+            def __iter__(self):
+                f0 = open(os.path.join(self.path, 'documents.txt'), 'r', encoding='utf-8')
+                for line in f0:
+                    yield line.strip()
+                f0.close()
+        return Iterable
     def stream_corpus_bow(self, fmt='mm'):
-        try:
-            if fmt == 'mm':
-                corpus_bow = corpora.MmCorpus(os.path.join(self.path, 'corpus_bow.mm'))
-            elif fmt == 'lda-c':
-                corpus_bow = corpora.BleiCorpus(os.path.join(self.path, 'corpus_bow.mm'))
-            else:
-                raise RuntimeError('fmt "{0}" not recognized'.format(fmt))
-            return corpus_bow
-        except FileNotFoundError as e:
-            print(e)
+        if not os.path.exists(os.path.join(self.path, 'corpus_bow.mm')):
+            print('corpus_bow.mm does not exist.')
             return None
+        if fmt == 'mm':
+            corpus_bow = corpora.MmCorpus(os.path.join(self.path, 'corpus_bow.mm'))
+        elif fmt == 'lda-c':
+            corpus_bow = corpora.BleiCorpus(os.path.join(self.path, 'corpus_bow.mm'))
+        else:
+            raise RuntimeError('fmt "{0}" not recognized'.format(fmt))
+        return corpus_bow
     def load_dictionary(self):
         self.dictionary = corpora.Dictionary.load(os.path.join(self.path, 'dictionary.pickle'))
     def mk_corpus(self, documents, ids=None, preprocessor=None, **kwargs):
@@ -205,7 +211,7 @@ class Corpus(object):
         if self.stream_documents() is None:
             return i
         for _ in self.stream_documents():
-            pass
-        return i + 1
+            i += 1
+        return i
     def len_corpus_bow(self):
         return self.stream_corpus_bow().num_docs

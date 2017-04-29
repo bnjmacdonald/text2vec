@@ -254,7 +254,6 @@ class CorpusProcessor(object):
             json.dump(self.ids.tolist(), f)
             # for line in self.ids:
             #     f.write(line + '\n')
-            
 
     def _save_config(self, out_path, config_kws):
         """saves configuration to file."""
