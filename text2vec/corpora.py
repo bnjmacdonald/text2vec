@@ -80,7 +80,7 @@ class Corpus(object):
         return n_corpus, n_corpus_bow, n_ids, n_documents, n_dictionary
     def stream_corpus(self):
         try:
-            f0 = open(os.path.join(self.path, 'corpus.txt'), 'r')
+            f0 = open(os.path.join(self.path, 'corpus.txt'), 'r', encoding='utf-8')
             for line in f0:
                 yield line.strip().split(' ')
             f0.close()
@@ -98,7 +98,7 @@ class Corpus(object):
             yield None
     def stream_documents(self):
         try:
-            f0 = open(os.path.join(self.path, 'documents.txt'), 'r')
+            f0 = open(os.path.join(self.path, 'documents.txt'), 'r', encoding='utf-8')
             for line in f0:
                 yield line.strip()
             f0.close()
@@ -176,7 +176,7 @@ class Corpus(object):
         else:
             raise RuntimeError('fmt "{0}" not recognized'.format(fmt))
     def _save_corpus(self, preprocessed):
-        f0 = open(os.path.join(self.path, 'corpus.txt'), 'w')
+        f0 = open(os.path.join(self.path, 'corpus.txt'), 'w', encoding='utf-8')
         f1 = open(os.path.join(self.path, 'ids.txt'), 'w')
         for uid, tokens in preprocessed:
             if len(tokens):
