@@ -55,6 +55,8 @@ class BowCorpus(object):
 
 class Corpus(object):
     def __init__(self, path, verbose=0):
+        if not os.path.exists(path):
+            os.makedirs(path)
         self.path = path
         self.verbose = verbose
         self.dictionary = None
