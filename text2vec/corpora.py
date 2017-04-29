@@ -14,6 +14,22 @@ import time
 from gensim import corpora
 from .utils import tokenize
 
+class SimpleCorpus(object):
+    """Generates a corpus of documents as bags of words.
+    
+    Attributes:
+        docs (list): list where each row is a document and each column is a
+            word count. (i.e. list in gensim sparse tuple format)
+    """
+    def __init__(self, docs, dictionary=None):
+        self.docs = docs
+        self.dictionary = dictionary
+    def __len__(self):
+        return len(self.docs)
+    def __iter__(self):
+        for i, doc in enumerate(self.docs):
+            yield doc
+
 class DocCorpus(object):
     """Generates a corpus of gensim TaggedDocument objects.
     
@@ -36,23 +52,7 @@ class DocCorpus(object):
             yield doc[:seqlen].values.astype(str).tolist()
 
 class BowCorpusSimple(object):
-    """Generates a corpus of documents as bags of words.
     
-    Attributes:
-        docs (list): list where each row is a document and each column is a
-            word count. (i.e. list in gensim sparse tuple format)
-    """
-    def __init__(self, docs, dictionary=None):
-        self.docs = docs
-        self.dictionary = dictionary
-    
-    def __len__(self):
-        return len(self.docs)
-
-    def __iter__(self):
-        for i, doc in enumerate(self.docs):
-            # yield doc.values.astype(str).tolist()
-            yield doc
 
 class Corpus(object):
     def __init__(self, path, verbose=0):
