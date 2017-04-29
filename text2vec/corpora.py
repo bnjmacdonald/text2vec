@@ -51,9 +51,6 @@ class DocCorpus(object):
             seqlen = len(doc) if self.seqlens is None else self.seqlens[i]
             yield doc[:seqlen].values.astype(str).tolist()
 
-class BowCorpusSimple(object):
-    
-
 class Corpus(object):
     def __init__(self, path, verbose=0):
         if not os.path.exists(path):
