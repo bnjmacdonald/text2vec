@@ -5,13 +5,14 @@ Corpus usage
 
 corpus = Corpus(out_path=out_path, verbose=1)
 
+https://rare-technologies.com/data-streaming-in-python-generators-iterators-iterables/
 
 """
 
 import os
 import time
 from gensim import corpora
-from .utils import tokenize
+from utils import tokenize
 
 class DocCorpus(object):
     """Generates a corpus of gensim TaggedDocument objects.
@@ -34,7 +35,7 @@ class DocCorpus(object):
             seqlen = len(doc) if self.seqlens is None else self.seqlens[i]
             yield doc[:seqlen].values.astype(str).tolist()
 
-class BowCorpus(object):
+class BowCorpusSimple(object):
     """Generates a corpus of documents as bags of words.
     
     Attributes:
@@ -78,51 +79,60 @@ class Corpus(object):
             print('{0:15s}: {1}'.format('documents', n_documents))
             print('{0:15s}: {1}'.format('dictionary', n_dictionary))
         return n_corpus, n_corpus_bow, n_ids, n_documents, n_dictionary
+    def iter_corpus(self):
+        for tokens in self.stream_corpus():
+            yield tokens
+            
+    def iter_corpus_bow(self):
+        for bow in self.stream_corpus_bow():
+            yield bow
+
+    def iter_documents(self):
+        for uid in self.stream_documents():
+            yield uid
+
+    def iter_ids(self):
+        for uid in self.stream_ids():
+            yield uid
     def stream_corpus(self):
-        if not os.path.exists(os.path.join(self.path, 'corpus.txt')):
-            print('corpus.txt does not exist.')
+        try:
+            f0 = open(os.path.join(self.path, 'corpus.txt'), 'r', encoding='utf-8')
+            for line in f0:
+                yield line.strip().split(' ')
+            f0.close()
+        except FileNotFoundError as e:
+            print(e)
             yield None
-        class Iterable(object):
-            def __iter__(self):
-                f0 = open(os.path.join(self.path, 'corpus.txt'), 'r', encoding='utf-8')
-                for line in f0:
-                    yield line.strip().split(' ')
-                f0.close()
-        return Iterable
     def stream_ids(self):
-        if not os.path.exists(os.path.join(self.path, 'ids.txt')):
-            print('ids.txt does not exist.')
+        try:
+            f0 = open(os.path.join(self.path, 'ids.txt'), 'r')
+            for line in f0:
+                yield line.strip()
+            f0.close()
+        except FileNotFoundError as e:
+            print(e)
             yield None
-        class Iterable(object):
-            def __iter__(self):
-                f0 = open(os.path.join(self.path, 'ids.txt'), 'r')
-                for line in f0:
-                    yield line.strip()
-                f0.close()
-        return Iterable
-        
     def stream_documents(self):
-        if not os.path.exists(os.path.join(self.path, 'documents.txt')):
-            print('documents.txt does not exist.')
+        try:
+            f0 = open(os.path.join(self.path, 'documents.txt'), 'r', encoding='utf-8')
+            for line in f0:
+                yield line.strip()
+            f0.close()
+        except FileNotFoundError as e:
+            print(e)
             yield None
-        class Iterable(object):
-            def __iter__(self):
-                f0 = open(os.path.join(self.path, 'documents.txt'), 'r', encoding='utf-8')
-                for line in f0:
-                    yield line.strip()
-                f0.close()
-        return Iterable
     def stream_corpus_bow(self, fmt='mm'):
-        if not os.path.exists(os.path.join(self.path, 'corpus_bow.mm')):
-            print('corpus_bow.mm does not exist.')
+        try:
+            if fmt == 'mm':
+                corpus_bow = corpora.MmCorpus(os.path.join(self.path, 'corpus_bow.mm'))
+            elif fmt == 'lda-c':
+                corpus_bow = corpora.BleiCorpus(os.path.join(self.path, 'corpus_bow.mm'))
+            else:
+                raise RuntimeError('fmt "{0}" not recognized'.format(fmt))
+            return corpus_bow
+        except FileNotFoundError as e:
+            print(e)
             return None
-        if fmt == 'mm':
-            corpus_bow = corpora.MmCorpus(os.path.join(self.path, 'corpus_bow.mm'))
-        elif fmt == 'lda-c':
-            corpus_bow = corpora.BleiCorpus(os.path.join(self.path, 'corpus_bow.mm'))
-        else:
-            raise RuntimeError('fmt "{0}" not recognized'.format(fmt))
-        return corpus_bow
     def load_dictionary(self):
         self.dictionary = corpora.Dictionary.load(os.path.join(self.path, 'dictionary.pickle'))
     def mk_corpus(self, documents, ids=None, preprocessor=None, **kwargs):
@@ -215,3 +225,16 @@ class Corpus(object):
         return i
     def len_corpus_bow(self):
         return self.stream_corpus_bow().num_docs
+
+class BowCorpus(Corpus):
+    """bag of words corpus."""
+    def __iter__(self):
+        for tokens in self.stream_corpus_bow():
+            yield tokens
+
+class LowCorpus(Corpus):
+    """list-of-words corpus."""
+    def __iter__(self):
+        for tokens in self.stream_corpus():
+            yield tokens
+
