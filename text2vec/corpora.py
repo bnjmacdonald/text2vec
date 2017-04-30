@@ -238,7 +238,7 @@ class Corpus(object):
 
     def _load_config(self):
         try:
-            with open(os.path.join(self.path, self.config_name), 'r') as f:
+            with open(os.path.join(self.path, self.config_fname), 'r') as f:
                 config = json.load(f)
         except IOError as e:
             print(e)
