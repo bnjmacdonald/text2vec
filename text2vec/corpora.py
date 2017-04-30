@@ -159,12 +159,12 @@ class Corpus(object):
         if preprocessor is None:
             preprocessor = tokenize
         preprocessed_docs = self._preprocess(documents, ids, preprocessor, **kwargs)
-        self._update_config(kwargs)
+        self._update_config(**kwargs)
         self._save_corpus(preprocessed_docs)
     
     def mk_corpus_bow(self, dict_filter_kws={}):
         corpus_bow = self._doc2bow(dict_filter_kws)
-        self._update_config(dict_filter_kws)
+        self._update_config(**dict_filter_kws)
         self._save_corpus_bow(corpus_bow, fmt='mm')
 
     def mk_dictionary(self, **kwargs):
