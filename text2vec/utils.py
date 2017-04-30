@@ -60,18 +60,23 @@ def normalize(vecs):
     vecs = np.divide(vecs, norms)
     return vecs
 
-def stream_slice(slice, streamer):
-    """returns a slice of tows from a file that is streamed from disk.
+def sliced_stream(rows, streamer):
+    """returns a slice of rows from a file that is streamed from disk.
     
     streamer must be a generator (or other iterable) that yields one line
     per iter.
 
     Example::
 
-        stream_slice(slice=[50, 100, 187], streamer=corpus.stream_documents)
+        stream_slice(rows=[50, 100, 187], streamer=corpus.stream_documents())
     """
+    # extracts slice.
+    sliced = []
+    for i, l in enumerate(streamer):
+        if i in rows:
+            sliced.append(l)
+    # orders slice by rows.
     result = []
-    for i, l in enumerate(streamer()):
-        if i in slice:
-            result.append(l)
+    for i in rows:
+        result.append(sliced[i])
     return result

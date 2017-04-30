@@ -54,16 +54,21 @@ class SimpleDocCorpus(object):
             yield doc[:seqlen].values.astype(str).tolist()
 
 class Corpus(object):
+    
+    corpus_fname = 'corpus.txt'
+    corpus_bow_fname = 'corpus_bow.mm'
+    ids_fname = 'ids.txt'
+    documents_fname = 'documents.txt'
+    dictionary_fname = 'dictionary.pickle'
+    config_fname = 'config.json'
+
     def __init__(self, path, verbose=0):
         if not os.path.exists(path):
             os.makedirs(path)
         self.path = path
         self.verbose = verbose
-        self.dictionary = None
-        # self.corpus = None
-        # self.corpus_bow = None
-        # self.documents = None
-        # self.ids = None
+        self._load_dictionary()
+        self._load_config()
 
     def __len__(self):
         return self.len_corpus()
@@ -98,7 +103,7 @@ class Corpus(object):
     
     def stream_corpus(self):
         try:
-            f0 = open(os.path.join(self.path, 'corpus.txt'), 'r', encoding='utf-8')
+            f0 = open(os.path.join(self.path, self.corpus_fname), 'r', encoding='utf-8')
             for line in f0:
                 yield line.strip().split(' ')
             f0.close()
@@ -108,7 +113,7 @@ class Corpus(object):
     
     def stream_ids(self):
         try:
-            f0 = open(os.path.join(self.path, 'ids.txt'), 'r')
+            f0 = open(os.path.join(self.path, self.ids_fname), 'r')
             for line in f0:
                 yield line.strip()
             f0.close()
@@ -117,8 +122,11 @@ class Corpus(object):
             yield None
     
     def stream_documents(self):
+        fname = self.documents_fname
+        if not os.path.exists(os.path.join(self.path, fname)):
+            fname = self.corpus_fname
         try:
-            f0 = open(os.path.join(self.path, 'documents.txt'), 'r', encoding='utf-8')
+            f0 = open(os.path.join(self.path, fname), 'r', encoding='utf-8')
             for line in f0:
                 yield line.strip()
             f0.close()
@@ -129,9 +137,9 @@ class Corpus(object):
     def stream_corpus_bow(self, fmt='mm'):
         try:
             if fmt == 'mm':
-                corpus_bow = corpora.MmCorpus(os.path.join(self.path, 'corpus_bow.mm'))
+                corpus_bow = corpora.MmCorpus(os.path.join(self.path, self.corpus_bow_fname))
             elif fmt == 'lda-c':
-                corpus_bow = corpora.BleiCorpus(os.path.join(self.path, 'corpus_bow.mm'))
+                corpus_bow = corpora.BleiCorpus(os.path.join(self.path, self.corpus_bow_fname))
             else:
                 raise RuntimeError('fmt "{0}" not recognized'.format(fmt))
             return corpus_bow
@@ -139,9 +147,13 @@ class Corpus(object):
             print(e)
             return None
     
-    def load_dictionary(self):
-        self.dictionary = corpora.Dictionary.load(os.path.join(self.path, 'dictionary.pickle'))
-        self.dictionary[0]  # appears that corpora.dictionary does not assign id2token unless called as such. Seems like a bug.
+    def _load_dictionary(self):
+        try:
+            self.dictionary = corpora.Dictionary.load(os.path.join(self.path, self.dictionary_fname))
+            self.dictionary[0]  # appears that corpora.dictionary does not assign id2token unless called as such. Seems like a bug.
+        except IOError as e:
+            print(e)
+            self.dictionary = None
     
     def mk_corpus(self, documents, ids=None, preprocessor=None, **kwargs):
         if preprocessor is None:
@@ -201,15 +213,15 @@ class Corpus(object):
 
     def _save_corpus_bow(self, corpus_bow, fmt='mm'):
         if fmt == 'mm':
-            corpora.MmCorpus.serialize(os.path.join(self.path, 'corpus_bow.mm'), corpus_bow)
+            corpora.MmCorpus.serialize(os.path.join(self.path, self.corpus_bow_fname), corpus_bow)
         elif fmt == 'lda-c':
-            corpora.BleiCorpus.serialize(os.path.join(self.path, 'corpus_bow.lda-c'), corpus_bow)
+            corpora.BleiCorpus.serialize(os.path.join(self.path, self.corpus_bow_fname), corpus_bow)
         else:
             raise RuntimeError('fmt "{0}" not recognized'.format(fmt))
     
     def _save_corpus(self, preprocessed):
-        f0 = open(os.path.join(self.path, 'corpus.txt'), 'w', encoding='utf-8')
-        f1 = open(os.path.join(self.path, 'ids.txt'), 'w')
+        f0 = open(os.path.join(self.path, self.corpus_fname), 'w', encoding='utf-8')
+        f1 = open(os.path.join(self.path, self.ids_fname), 'w')
         for uid, tokens in preprocessed:
             if len(tokens):
                 f0.write(' '.join(tokens) + '\n')
@@ -218,14 +230,24 @@ class Corpus(object):
         f1.close()
     
     def _save_dictionary(self):
-        self.dictionary.save(os.path.join(self.path, 'dictionary.pickle'))
+        self.dictionary.save(os.path.join(self.path, self.dictionary_fname))
     
     def _update_config(self, **kwargs):
-        with open(os.path.join(self.path, 'config.json'), 'r') as f:
-            config = json.load(f)
-        config.update(kwargs)
-        with open(os.path.join(self.path, 'config.json'), 'w') as f:
-            json.dump(config, f)
+        self.config.update(kwargs)
+        self._save_config()
+
+    def _load_config(self):
+        try:
+            with open(os.path.join(self.path, self.config_name), 'r') as f:
+                config = json.load(f)
+        except IOError as e:
+            print(e)
+            config = {}
+        self.config = config
+
+    def _save_config(self):
+        with open(os.path.join(self.path, self.config_fname), 'w') as f:
+            json.dump(self.config, f)
 
     def len_corpus(self):
         i = 0
