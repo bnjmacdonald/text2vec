@@ -1,4 +1,5 @@
 import string
+# import copy
 import numpy as np
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem.porter import PorterStemmer
@@ -42,7 +43,35 @@ def tokenize(text, tokenizer=None, stem=True, stemmer=None, rm_stop_words=True, 
             tokens = [token for token in tokens if token not in punct]
     return np.array(tokens)
 
+# def filter_dictionary(dictionary, no_below, no_above):
+#     orig_token_sample = [dictionary.id2token[i] for i in range(100)]
+#     dictionary_filt = copy.deepcopy(dictionary)
+#     dictionary_filt.filter_extremes(no_below=no_below, no_above=no_above)
+#     word_ids = [dictionary.token2id[w] for w in dictionary_filt.values()]  # word ids to keep
+#     dictionary.filter_tokens(good_ids=word_ids)
+#     assert len(word_ids) == len(dictionary_filt)
+#     assert len(word_ids) == len(dictionary)
+#     dictionary[0]  # required for gensim to build id2token dictionary.
+#     assert all([orig_token_sample[i] == dictionary.id2token[i] for i in range(100)])
+#     return dictionary_filt
+
 def normalize(vecs):
     norms = np.linalg.norm(vecs, ord=2, axis=1, keepdims=True)
     vecs = np.divide(vecs, norms)
     return vecs
+
+def stream_slice(slice, streamer):
+    """returns a slice of tows from a file that is streamed from disk.
+    
+    streamer must be a generator (or other iterable) that yields one line
+    per iter.
+
+    Example::
+
+        stream_slice(slice=[50, 100, 187], streamer=corpus.stream_documents)
+    """
+    result = []
+    for i, l in enumerate(streamer()):
+        if i in slice:
+            result.append(l)
+    return result

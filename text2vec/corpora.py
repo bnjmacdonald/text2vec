@@ -10,7 +10,7 @@ https://rare-technologies.com/data-streaming-in-python-generators-iterators-iter
 """
 
 import os
-import time
+import json
 from gensim import corpora
 from .utils import tokenize
 
@@ -24,13 +24,15 @@ class SimpleCorpus(object):
     def __init__(self, docs, dictionary=None):
         self.docs = docs
         self.dictionary = dictionary
+    
     def __len__(self):
         return len(self.docs)
+    
     def __iter__(self):
         for i, doc in enumerate(self.docs):
             yield doc
 
-class DocCorpus(object):
+class SimpleDocCorpus(object):
     """Generates a corpus of gensim TaggedDocument objects.
     
     Attributes:
@@ -65,6 +67,7 @@ class Corpus(object):
 
     def __len__(self):
         return self.len_corpus()
+    
     def get_sizes(self):
         n_corpus, n_corpus_bow, n_ids, n_documents = self.len_corpus(), self.len_corpus_bow(), self.len_ids(), self.len_documents()
         n_dictionary = len(self.dictionary) if self.dictionary is not None else 0
@@ -76,6 +79,7 @@ class Corpus(object):
             print('{0:15s}: {1}'.format('documents', n_documents))
             print('{0:15s}: {1}'.format('dictionary', n_dictionary))
         return n_corpus, n_corpus_bow, n_ids, n_documents, n_dictionary
+    
     def iter_corpus(self):
         for tokens in self.stream_corpus():
             yield tokens
@@ -91,33 +95,37 @@ class Corpus(object):
     def iter_ids(self):
         for uid in self.stream_ids():
             yield uid
+    
     def stream_corpus(self):
         try:
             f0 = open(os.path.join(self.path, 'corpus.txt'), 'r', encoding='utf-8')
             for line in f0:
                 yield line.strip().split(' ')
             f0.close()
-        except FileNotFoundError as e:
+        except IOError as e:
             print(e)
             yield None
+    
     def stream_ids(self):
         try:
             f0 = open(os.path.join(self.path, 'ids.txt'), 'r')
             for line in f0:
                 yield line.strip()
             f0.close()
-        except FileNotFoundError as e:
+        except IOError as e:
             print(e)
             yield None
+    
     def stream_documents(self):
         try:
             f0 = open(os.path.join(self.path, 'documents.txt'), 'r', encoding='utf-8')
             for line in f0:
                 yield line.strip()
             f0.close()
-        except FileNotFoundError as e:
+        except IOError as e:
             print(e)
             yield None
+    
     def stream_corpus_bow(self, fmt='mm'):
         try:
             if fmt == 'mm':
@@ -127,19 +135,26 @@ class Corpus(object):
             else:
                 raise RuntimeError('fmt "{0}" not recognized'.format(fmt))
             return corpus_bow
-        except FileNotFoundError as e:
+        except IOError as e:
             print(e)
             return None
+    
     def load_dictionary(self):
         self.dictionary = corpora.Dictionary.load(os.path.join(self.path, 'dictionary.pickle'))
+        self.dictionary[0]  # appears that corpora.dictionary does not assign id2token unless called as such. Seems like a bug.
+    
     def mk_corpus(self, documents, ids=None, preprocessor=None, **kwargs):
         if preprocessor is None:
             preprocessor = tokenize
         preprocessed_docs = self._preprocess(documents, ids, preprocessor, **kwargs)
+        self._update_config(kwargs)
         self._save_corpus(preprocessed_docs)
+    
     def mk_corpus_bow(self, dict_filter_kws={}):
         corpus_bow = self._doc2bow(dict_filter_kws)
+        self._update_config(dict_filter_kws)
         self._save_corpus_bow(corpus_bow, fmt='mm')
+
     def mk_dictionary(self, **kwargs):
         """creates a gensim dictionary of id->token mappings.
 
@@ -158,12 +173,13 @@ class Corpus(object):
             print('constructing dictionary...')
         dictionary = corpora.Dictionary([['<pad>'], ['<unk>'], ['<end>']])
         dictionary2 = corpora.Dictionary(self.stream_corpus())
-        if len(kwargs) is not None:
+        if len(kwargs):
             dictionary2.filter_extremes(**kwargs)
             dictionary2.compactify()
         dictionary.merge_with(dictionary2)
         self.dictionary = dictionary
         self._save_dictionary()
+    
     def _doc2bow(self, dict_filter_kws={}):
         if self.dictionary is None:
             self.mk_dictionary(**dict_filter_kws)
@@ -174,6 +190,7 @@ class Corpus(object):
             bow = self.dictionary.doc2bow(tokens)
             # if len(bow):
             yield bow
+    
     def _preprocess(self, documents, ids, preprocessor, **tokenize_kws):
         if self.verbose:
             print('Preprocessing documents and saving to disk...')
@@ -181,6 +198,7 @@ class Corpus(object):
             doc_tokens = preprocessor(text=text, **tokenize_kws)
             uid = ids[i] if ids is not None else i
             yield uid, doc_tokens
+
     def _save_corpus_bow(self, corpus_bow, fmt='mm'):
         if fmt == 'mm':
             corpora.MmCorpus.serialize(os.path.join(self.path, 'corpus_bow.mm'), corpus_bow)
@@ -188,6 +206,7 @@ class Corpus(object):
             corpora.BleiCorpus.serialize(os.path.join(self.path, 'corpus_bow.lda-c'), corpus_bow)
         else:
             raise RuntimeError('fmt "{0}" not recognized'.format(fmt))
+    
     def _save_corpus(self, preprocessed):
         f0 = open(os.path.join(self.path, 'corpus.txt'), 'w', encoding='utf-8')
         f1 = open(os.path.join(self.path, 'ids.txt'), 'w')
@@ -197,8 +216,17 @@ class Corpus(object):
                 f1.write(str(uid) + '\n')
         f0.close()
         f1.close()
+    
     def _save_dictionary(self):
         self.dictionary.save(os.path.join(self.path, 'dictionary.pickle'))
+    
+    def _update_config(self, **kwargs):
+        with open(os.path.join(self.path, 'config.json'), 'r') as f:
+            config = json.load(f)
+        config.update(kwargs)
+        with open(os.path.join(self.path, 'config.json'), 'w') as f:
+            json.dump(config, f)
+
     def len_corpus(self):
         i = 0
         if self.stream_corpus() is None:
@@ -206,6 +234,7 @@ class Corpus(object):
         for _ in self.stream_corpus():
             i += 1
         return i
+    
     def len_ids(self):
         i = 0
         if self.stream_ids() is None:
@@ -213,6 +242,7 @@ class Corpus(object):
         for _ in self.stream_ids():
             i += 1
         return i
+    
     def len_documents(self):
         i = 0
         if self.stream_documents() is None:
@@ -220,18 +250,24 @@ class Corpus(object):
         for _ in self.stream_documents():
             i += 1
         return i
+    
     def len_corpus_bow(self):
         return self.stream_corpus_bow().num_docs
+
 
 class BowCorpus(Corpus):
     """bag of words corpus."""
     def __iter__(self):
         for tokens in self.stream_corpus_bow():
             yield tokens
+    def __len__(self):
+        return self.len_corpus_bow()
 
 class LowCorpus(Corpus):
     """list-of-words corpus."""
     def __iter__(self):
         for tokens in self.stream_corpus():
             yield tokens
+    def __len__(self):
+        return self.len_corpus()
 
