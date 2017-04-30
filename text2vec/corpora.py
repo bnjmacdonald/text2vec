@@ -151,8 +151,8 @@ class Corpus(object):
         try:
             self.dictionary = corpora.Dictionary.load(os.path.join(self.path, self.dictionary_fname))
             self.dictionary[0]  # appears that corpora.dictionary does not assign id2token unless called as such. Seems like a bug.
-        except IOError as e:
-            print(e)
+        except IOError:
+            print('No dictionary found at {0}'.format(os.path.join(self.path, self.dictionary_fname)))
             self.dictionary = None
     
     def mk_corpus(self, documents, ids=None, preprocessor=None, **kwargs):
@@ -240,8 +240,8 @@ class Corpus(object):
         try:
             with open(os.path.join(self.path, self.config_fname), 'r') as f:
                 config = json.load(f)
-        except IOError as e:
-            print(e)
+        except IOError:
+            print('No configuration file found at {0}. Initializing empty self.config'.format(os.path.join(self.path, self.config_fname)))
             config = {}
         self.config = config
 
