@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import pandas as pd
 import numpy as np
 from .utils import normalize
 
@@ -22,8 +23,9 @@ class Text2Vec(object):
             config = Config()
         self.config = config
         self.verbose = verbose
-        self.embeddings = None
         self.meta = meta
+        self.embeddings = None
+        # self.ids = None
         self._fname = None
 
     def __str__(self):
@@ -88,8 +90,19 @@ class Text2Vec(object):
         out['name'] = str(self)
         out['train_time'] = self.train_time
         out['config'] = {k: self.config.__getattribute__(k) for k in dir(self.config) if not k.startswith('__')}
-        with open(os.path.join(path, self._fname + '.txt'), 'w') as f:
+        with open(os.path.join(path, self._fname + '_config.txt'), 'w') as f:
             json.dump(out, f)
+
+    def save_embeddings(self, path, embeddings, ids=None):
+        """saves embeddings to file.
+
+        First column is document ids. If ids=None, ids are assigned
+        sequentially.
+        """
+        if self._fname is None:
+            raise ValueError('self._fname must be assigned before self.save_embeddings is called.')
+        pd_embeds = pd.DataFrame(embeddings, index=ids)
+        pd_embeds.to_csv(os.path.join(path, self._fname + '_embeddings.txt'), sep=',', header=None, index=True)
 
     def load(self, fname):
         # Note: kludge. Why not pickle original config instead?
