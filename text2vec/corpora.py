@@ -126,7 +126,7 @@ class Corpus(object):
         if not os.path.exists(os.path.join(self.path, fname)):
             fname = self.corpus_fname
         try:
-            f0 = open(os.path.join(self.path, fname), 'r', decoding='utf-8')
+            f0 = open(os.path.join(self.path, fname), 'r', encoding='utf-8')
             for line in f0:
                 yield line.strip()
             f0.close()
