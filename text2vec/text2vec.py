@@ -106,7 +106,7 @@ class Text2Vec(object):
 
     def load(self, fname):
         # Note: kludge. Why not pickle original config instead?
-        with open(fname + '.txt', 'r') as f:
+        with open(fname + '_config.txt', 'r') as f:
             config_dict = json.load(f)
         for k, v in config_dict['config'].items():
             self.config.__setattr__(k, v)
