@@ -3,50 +3,87 @@ import time
 import json
 import pandas as pd
 import numpy as np
-from .utils import normalize
+from text2vec.utils import normalize
 
-class Config(object):
-    pass
 
 class Text2Vec(object):
     """Abstract class for a general text2vec model.
 
-    Arguments:
-        config (obj): object containing configuration for model estimation.
+    The Text2Vec class provides a common base class that all other text2vec
+    classes extends. The primary interface methods are `fit` and
+    `get_embeddings`.
+
+    Each Text2Vec subclass must implements its own `_train` and `get_embeddings`
+    methods.
+
+    Attributes:
+
+        config (object): object containing configuration from model estimation.
+
+        model (object): trained model.
+
+        embeddings: np.ndarray (n_observations, n_features). Document
+            embeddings.
+
         meta (pd.DataFrame): pandas DataFrame containing metadata on each
             document. Used for aggregation. Index of meta must align with
             index of self.embeddings.
+
         verbose (int): print verbose output to stdout.
     """
-    def __init__(self, config=None, meta=None, verbose=0):
-        if config is None:
-            config = Config()
-        self.config = config
+
+    _model_fname = 'model'
+
+    def __init__(self, meta=None, verbose=0):
         self.verbose = verbose
         self.meta = meta
+        self.config = {'name': str(self), 'train_time': 0.0}
         self.embeddings = None
+        self.model = None
         # self.ids = None
-        self._fname = None
 
     def __str__(self):
         return 'text2vec'
-    
+
     def evaluate(self):
         raise NotImplementedError
 
-    def fit(self, docs):
-        """fits model to the data."""
+    def fit(self, corpus, **kwargs):
+        """trains a text2vec model on a dataset. Thin wrapper to `self._train`.
+
+        Arguments:
+
+            corpus: ...
+
+        Returns:
+
+            int: 0.
+
+        Todos:
+
+            KLUDGE: assignment of self.config is awkward.
+        """
         if self.verbose:
             print('training document embeddings...')
         time0 = time.time()
-        self._train(docs, **self.config.fit_kws)
+        self._train(corpus, **kwargs)
         time1 = time.time()
-        self.train_time = time1 - time0
+        self.config.update({k: v for k, v in kwargs.items() if isinstance(v, str) or isinstance(v, int) or isinstance(v, float)})
+        self.config['train_time'] += round(time1 - time0, 4)
+        return 0
 
-    def _train(self, docs, **kwargs):
+    def _train(self, corpus, **kwargs):
         """class-specific method for training the model.
 
         This method should not be used directly. Use self.fit.
+
+        Arguments:
+
+            corpus: ...
+
+        Returns:
+
+            ...
         """
         raise NotImplementedError('Each class must reimplement this method.')
 
@@ -54,20 +91,28 @@ class Text2Vec(object):
         """returns embedding matrix."""
         raise NotImplementedError('Each class must reimplement this method.')
 
-
     def agg_embeddings(self, id_var, embeddings=None, agg_func=np.mean, pre_norm=False, post_norm=False):
         """Aggregates embeddings.
-        
+
         Arguments:
+
             id_var (str): column in self.meta to group embeddings by.
+
             embeddings (np.ndarray): embeddings to aggregate. If None, use
                 self.embeddings.
-            agg_func (method): function to use in aggregation (e.g. np.mean, 
+
+            agg_func (method): function to use in aggregation (e.g. np.mean,
                 np.sum). Default: np.mean.
+
             pre_norm (bool): If True, l2-normalize embeddings before
                 aggregation. Default: False.
+
             post_norm (bool): If True, l2-normalize embeddings after
                 aggregation. Default: False.
+
+        Returns:
+
+            ...
         """
         if self.meta is None:
             raise RuntimeError('meta has not been assigned.')
@@ -83,15 +128,18 @@ class Text2Vec(object):
             embeddings_agg = normalize(embeddings_agg)
         return embeddings_agg
 
+    def infer_docvecs(self, corpus):
+        """infers embeddings from trained model.
+
+        Todos:
+
+            TODO: when does this differ from `get_embeddings`?
+        """
+        raise NotImplementedError('Each class must reimplement this method.')
+
     def save(self, path):
-        if self._fname is None:
-            self._get_fname(path)
-        out = {}
-        out['name'] = str(self)
-        out['train_time'] = self.train_time
-        out['config'] = {k: self.config.__getattribute__(k) for k in dir(self.config) if not k.startswith('__')}
-        with open(os.path.join(path, self._fname + '_config.txt'), 'w') as f:
-            json.dump(out, f)
+        with open(os.path.join(path, 'config.json'), 'w') as f:
+            json.dump(self.config, f)
 
     def save_embeddings(self, path, embeddings, ids=None):
         """saves embeddings to file.
@@ -99,25 +147,9 @@ class Text2Vec(object):
         First column is document ids. If ids=None, ids are assigned
         sequentially.
         """
-        if self._fname is None:
-            raise ValueError('self._fname must be assigned before self.save_embeddings is called.')
         pd_embeds = pd.DataFrame(embeddings, index=ids)
-        pd_embeds.to_csv(os.path.join(path, self._fname + '_embeddings.txt'), sep=',', header=None, index=True)
+        pd_embeds.to_csv(os.path.join(path, 'embeddings.txt'), sep=',', header=None, index=True)
 
     def load(self, fname):
-        # Note: kludge. Why not pickle original config instead?
-        with open(fname + '_config.txt', 'r') as f:
-            config_dict = json.load(f)
-        for k, v in config_dict['config'].items():
-            self.config.__setattr__(k, v)
-
-    def _get_fname(self, path):
-        fname = 'experiment'
-        if self.config.debug:
-            fname = 'debug_' + fname
-        new_fname = fname
-        x = 0
-        while os.path.exists(os.path.join(path, new_fname + str(x))):
-            x += 1
-        self._fname = new_fname + str(x)
-
+        with open(fname + 'config.json', 'r') as f:
+            self.config = json.load(f)
