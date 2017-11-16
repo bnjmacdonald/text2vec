@@ -87,7 +87,7 @@ class Text2Vec(object):
         """
         raise NotImplementedError('Each class must reimplement this method.')
 
-    def get_embeddings(self, norm=False):
+    def embed(self, norm=False):
         """returns embedding matrix."""
         raise NotImplementedError('Each class must reimplement this method.')
 
@@ -118,7 +118,7 @@ class Text2Vec(object):
             raise RuntimeError('meta has not been assigned.')
         if embeddings is None:
             if self.embeddings is None:
-                self.get_embeddings()
+                self.embed()
             # data_temp = self.embeddings.join(group)
             embeddings = self.embeddings
         if pre_norm:
@@ -150,6 +150,6 @@ class Text2Vec(object):
         pd_embeds = pd.DataFrame(embeddings, index=ids)
         pd_embeds.to_csv(os.path.join(path, 'embeddings.txt'), sep=',', header=None, index=True)
 
-    def load(self, fname):
-        with open(fname + 'config.json', 'r') as f:
+    def load(self, path):
+        with open(os.path.join(path, 'config.json'), 'r') as f:
             self.config = json.load(f)

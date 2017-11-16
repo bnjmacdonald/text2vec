@@ -36,18 +36,23 @@ class Lda(Text2Vec):
         super(Lda, self).save(path)
         self.model.save(os.path.join(path, self._model_fname))
 
-    def load(self, fname):
-        super(Lda, self).load(fname)
-        self.model = models.LdaMulticore.load(fname)
+    def load(self, path):
+        super(Lda, self).load(path)
+        self.model = models.LdaMulticore.load(os.path.join(path, 'model'))
 
-    def get_embeddings(self, corpus, norm=False):
+    def embed(self, corpus, norm=False):
         """returns embedding matrix
+
         Arguments:
 
             corpus: corpus that yields one document at a time in gensim
                 sprse (list of 2-tuples) format.
 
             norm: boolean (default=False). Whether to normalize the embeddings.
+
+        Todos:
+
+            TODO: can this be made faster?
         """
         # corpus_bow = matutils.Sparse2Corpus(corpus_csr, documents_columns=False)
         orig_embeddings = self.model[corpus]
