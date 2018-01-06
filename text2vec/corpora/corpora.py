@@ -10,7 +10,7 @@ https://rare-technologies.com/data-streaming-in-python-generators-iterators-iter
 
 import os
 import json
-import joblib
+from sklearn.externals import joblib
 from text2vec.processing.preprocess import preprocess_one, tokens2bow
 from text2vec.corpora.dictionaries import BasicDictionary
 
@@ -195,6 +195,8 @@ class Corpus(object):
                 # converts tokens to token_ids.
                 doc_array = self.builder.dictionary.tokens2ids(tokens)
                 # converts tokens
+            else:
+                doc_array = []
             doc_array = [str(token_id) for token_id in doc_array]
             seqlen = len(doc_array) + 1  # +1 b/c of end_token_id
             f0.write(' '.join(doc_array) + ' ' + end_token_id + '\n')

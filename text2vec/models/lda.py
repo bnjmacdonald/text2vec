@@ -80,3 +80,17 @@ class Lda(Text2Vec):
         docvecs_infer = docvecs_infer_csr.todense()
         # docvecs_infer = np.vstack(docvecs_infer)
         return docvecs_infer
+    
+    def token_embed(self, token_ids):
+        """retrieves token embeddings (n_tokens X n_topics matrix).
+        """
+        token_embeddings = []
+        for token_id in token_ids:
+            arr = np.zeros((self.model.num_topics,))
+            term_topics = self.model.get_term_topics(token_id, minimum_probability=0.0)
+            for topic, loading in term_topics:
+                arr[topic] = loading
+            token_embeddings.append(arr)
+        token_embeddings = np.vstack(token_embeddings)
+        assert token_embeddings.shape[0] == len(token_ids)
+        return token_embeddings
