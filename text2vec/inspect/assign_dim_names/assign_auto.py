@@ -19,7 +19,7 @@ Todos:
 
 from typing import Dict
 
-def assign_auto(model: object, topn: int = 10, verbosity: int = 0) -> Dict[int, str]:
+def assign_auto(model: object, topn: int = 10, verbosity: int = 0) -> Dict[int, Dict[str, str]]:
     """assigns dimension names automatically by extracting the most common
     token in the topic and using that token as the dimension name.
 
@@ -31,15 +31,24 @@ def assign_auto(model: object, topn: int = 10, verbosity: int = 0) -> Dict[int, 
 
     Returns:
 
-        names: dict of dim (int) -> name (str) mappings. Dictionary of names for
-            each dimension.
+        names: Dict[int, Dict[str, str]]. Dictionary of names for
+            each dimension. Each key points to a dict containing a name and
+            short_name for each dimension. The short_name is the most frequently
+            occuring token. The name is a comma-separated list of the top five
+            most frequently occuring tokens.
 
             Example::
 
                 {
-                    0: "pharmaceuticals",
-                    1: "primary education",
-                    2: "procedural",
+                    0: {
+                        "short_name": "pharm",
+                        "name": "pharm, price, health, cost, hosp",
+                    },
+                    1: {
+                        "short_name": ...,
+                        "name": ...,
+                        "description": ...
+                    },
                     ...
                 }
 
@@ -58,5 +67,5 @@ def assign_auto(model: object, topn: int = 10, verbosity: int = 0) -> Dict[int, 
             print('\n------------------\nTopic %d:' % (i))
             print('Top words:', top_words)
             print('Loading:', loadings)
-        names[i] = top_words[0]
+        names[i] = {"name": ', '.join(top_words[0:5]), "short_name": top_words[0]}
     return names

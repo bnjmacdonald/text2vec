@@ -21,7 +21,7 @@ def assign_manual(outpath: str,
                   ids2tokens: Callable[[List[int]], List[str]],
                   embeddings: np.ndarray,
                   token_embeddings: list,
-                  document_getter: Callable[[list], List[dict]]) -> Dict[int, str]:
+                  document_getter: Callable[[list], List[dict]]) -> Dict[int, Dict[str, str]]:
     """provides a simple command-line interface for assigning embedding
     dimension names manually.
 
@@ -82,36 +82,43 @@ def assign_manual(outpath: str,
 
     Returns:
 
-        names: dict of dim (int) -> name (str) mappings. Dictionary of names for
-            each dimension.
+        names: Dict[int, Dict[str, str]]. Dictionary of names for
+            each dimension. Each key points to a dict containing a name,
+            short_name, and description for each dimension.
 
             Example::
 
                 {
-                    0: "pharmaceuticals",
-                    1: "primary education",
-                    2: "procedural",
+                    0: {
+                        "short_name": "pharmaceuticals",
+                        "name": "pharmaceutical prices",
+                        "description": "Speeches emphasize concerns over high 
+                            pharmaceutical prices."
+                    },
+                    1: {
+                        "short_name": ...,
+                        "name": ...,
+                        "description": ...
+                    },
                     ...
                 }
     """
-    topn = 5
-    topn_tokens = 20
     try:
         with open(outpath, 'r') as f:
-            names = {int(dim): name for dim, name in json.load(f).items()}
+            names = {int(dim): name_data for dim, name_data in json.load(f).items()}
     except FileNotFoundError:
         names = {}
     actions = {
-        'n': lambda dim: assign_name(dim, names=names, outpath=outpath),
-        'v': lambda dim: names,
-        's': lambda dim: document_getter(
+        'n': lambda dim, topn: assign_name(dim, names=names, outpath=outpath),
+        'v': lambda dim, topn: names,
+        's': lambda dim, topn: document_getter(
             document_ids[sample_dim_docs(dim=dim, embeddings=embeddings, size=topn, replace=False)]
         ),
-        'd': lambda dim: document_getter(
+        'd': lambda dim, topn: document_getter(
             document_ids[dim_top_docs(dim=dim, embeddings=embeddings, topn=topn)]
         ),
-        't': lambda dim: ids2tokens(
-            dim_top_docs(dim=dim, embeddings=token_embeddings, topn=topn_tokens)
+        't': lambda dim, topn: ids2tokens(
+            dim_top_docs(dim=dim, embeddings=token_embeddings, topn=topn)
         ),
     }
     action_msg = lambda dim, name: '\n' + '-'*20 + '\nASSIGNING NAME TO DIMENSION {0}.\
@@ -138,33 +145,49 @@ def assign_manual(outpath: str,
                     name = _handle_action(actions, action, dim)
     except KeyboardInterrupt:
         if len(names) > 0:
-            print('Assigned names: {0}'.format(names))
-            print('Assigned names saved to {0}'.format(outpath))
+            print('Assigned names: ')
+            pprint(names)
+            print('Saved assigned names to {0}'.format(outpath))
     return names
 
 
 def _handle_action(actions: dict, action: str, dim: int) -> str:
     """handles user action."""
+    topn = None
+    topn_default = 10
     try:
         if action == 'q':
             raise KeyboardInterrupt
-        result = actions[action](dim)
+        elif action in ['s', 'd', 't']:
+            while not isinstance(topn, int):
+                topn = input('Number to view (hit enter for default: {0}): '.format(topn_default))
+                if len(topn.strip()) == 0:
+                    topn = topn_default
+                else:
+                    try:
+                        topn = int(topn.strip())
+                    except ValueError:
+                        print('{0} is not a valid integer'.format(topn))
+                        topn = None
+        result = actions[action](dim, topn)
         if action == 'n':
             return result  # name of dimension
         elif action == 'v':
             print('\n')
             pprint(result)
         elif action == 's':
-            for doc in actions[action](dim):
+            for doc in result:
                 print('\n')
                 pprint(doc)
+                input('press any key to view next: ')
         elif action == 'd':
-            for doc in actions[action](dim):
+            for doc in result:
                 print('\n')
                 pprint(doc)
+                input('press any key to view next: ')
         elif action == 't':
             print('\n')
-            print(actions[action](dim))
+            print(result)
     except KeyError:
         print('\n{0} not recognized.'.format(action))
     return None
@@ -180,7 +203,7 @@ def assign_name(dim: int, names: dict, outpath: str) -> str:
             return None
         if _is_valid_name(name):
             confirmed = _confirm_name(name)
-    names[dim] = name
+    names[dim] = {'name': name}
     with open(outpath, 'w') as f:
         json.dump(names, f)
         print('{0} name for dimension {1} saved to {2}'.format(name, dim, outpath))
