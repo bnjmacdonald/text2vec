@@ -10,7 +10,7 @@ https://rare-technologies.com/data-streaming-in-python-generators-iterators-iter
 
 import os
 import json
-from sklearn.externals import joblib
+import dill
 from text2vec.processing.preprocess import preprocess_one, tokens2bow
 from text2vec.corpora.dictionaries import BasicDictionary
 
@@ -54,7 +54,8 @@ class CorpusBuilder(object):
         assert self.fmt in ['bow', 'seq'], "self.fmt must be one of 'bow' or 'seq'."
 
     def save(self):
-        joblib.dump(self.text_transformer, os.path.join(self.path, self.text_transformer_fname))
+        with open(os.path.join(self.path, self.text_transformer_fname), 'wb') as f:
+            dill.dump(self.text_transformer, f)
         self.dictionary.save(os.path.join(self.path, self.dictionary_fname))
         with open(os.path.join(self.path, self.config_fname), 'w') as f:
             config = {  # TODO: save preprocessing configuration options.
@@ -65,7 +66,8 @@ class CorpusBuilder(object):
         return 0
 
     def _load(self):
-        self.text_transformer = joblib.load(os.path.join(self.path, self.text_transformer_fname))
+        with open(os.path.join(self.path, self.text_transformer_fname), 'rb') as f:
+            self.text_transformer = dill.load(f)
         self.dictionary.load(os.path.join(self.path, self.dictionary_fname))
         with open(os.path.join(self.path, self.config_fname), 'r') as f:
             config = json.load(f)

@@ -71,8 +71,8 @@ def preprocess_one(text: str,
         tokenize = RegexpTokenizer(r'\w+').tokenize
     if pipeline is None:
         pipeline = [
-            {"returns": "str", "function": PorterStemmer().stem},
-            {"returns": "bool", "function": rm_stop_words_punct}
+            {"returns": "bool", "function": rm_stop_words_punct},
+            {"returns": "str", "function": PorterStemmer().stem}
         ]
     if text is not None and len(text) > 0:
         tokens = tokenize(text)

@@ -21,7 +21,7 @@ setup(
         'nltk==3.2.1',
         'numpy',
         'sklearn',
-        'joblib',
+        'dill',
         'typing'
       ],
     zip_safe=False
