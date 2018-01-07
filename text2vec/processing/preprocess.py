@@ -2,6 +2,7 @@
 """
 import re
 import string
+from typing import Callable, List, Tuple, Union
 from collections import Counter
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem.porter import PorterStemmer
@@ -11,11 +12,15 @@ STOP_WORDS = stopwords.words('english')
 STOP_WORDS_PUNCT_REGEX = re.compile(
     '^' + '$|^'.join(STOP_WORDS + [re.escape(s) for s in string.punctuation]) + '$',
     re.IGNORECASE)
+DIGIT_REGEX = re.compile(r'\d+')
 
-def preprocess_one(text, tokenize=None, pipeline=None):
+def preprocess_one(text: str,
+                   tokenize: Callable[[str], List[str]] = None,
+                   pipeline: List[dict] = None) -> List[str]:
     """tokenizes a document and conducts other preprocessing.
 
     Arguments:
+
         text: string representing document to be tokenized.
 
         tokenize: function. tokenizer that splits the text into a list of
@@ -35,9 +40,9 @@ def preprocess_one(text, tokenize=None, pipeline=None):
                     {"returns": "bool", "function": rm_stop_words_punct}
                 ]
 
-            `rm_stop_words_punct` removes English stop words (from
+            - `rm_stop_words_punct` removes English stop words (from
             nltk.corpus.stopwords) and punctuation (from string.punctuation).
-             `stem` stems tokens using nltk.stem.porter.PorterStemmer. The text
+            - `stem` stems tokens using nltk.stem.porter.PorterStemmer. The text
              will be processed in the order that the preprocessors are given in
              this pipeline.
 
@@ -80,7 +85,8 @@ def preprocess_one(text, tokenize=None, pipeline=None):
                 raise ValueError('{0} return type not implemented'.format(processor['returns']))
     return tokens
 
-def rm_stop_words_punct(token):
+
+def rm_stop_words_punct(token: str) -> bool:
     """returns true if token is an nltk English stop words or a piece of
     punctuation.
 
@@ -90,14 +96,53 @@ def rm_stop_words_punct(token):
 
     Returns:
 
-        bool: True is token is an nltk English stop word or a piece of
+        bool: True if token is an nltk English stop word or a piece of
             punctuation; False otherwise.
     """
     # tokens = [token for token in tokens if token not in STOP_WORDS]
     return bool(re.search(STOP_WORDS_PUNCT_REGEX, token))
 
 
-def tokens2bow(tokens):
+def rm_digits(token: str) -> bool:
+    """returns true if token contains one or more digits.
+
+    Arguments:
+
+        token: string.
+    
+    Returns:
+
+        bool: True if token contains one or more digits, False otherwise.
+    """
+    return bool(re.search(DIGIT_REGEX, token))
+
+
+def rm_min_chars(min_len: int) -> Callable[[str], bool]:
+    """returns Callable that takes a token as the only argument and returns
+    True if the token length (number of characters) is less than min_len; False
+    otherwise.
+
+    Arguments:
+
+        min_len: int. Minimum length.
+
+    Returns:
+
+        func: Callable[[str], bool].
+
+    Example::
+
+        >>> func = rm_min_chars(10)
+        >>> func('longwordisgood')
+        False
+        >>> func('tooshort')
+        True
+    """
+    func = lambda token: len(token) < min_len
+    return func
+
+
+def tokens2bow(tokens: List[str]) -> List[Tuple[Union[int, str], int]]:
     """converts a list of tokens to 2-tuple bag of words format.
 
     Arguments:
