@@ -17,23 +17,46 @@ Todos:
         token, rather than simply the most common token. (e.g. tf-idf?)
 """
 
-def assign_auto(model: object, topn: int, verbosity: int = 0):
-    """assigns dimension names automatically by extracting the most common token
-    in the topic and using that token as the dimension name.
+from typing import Dict
+
+def assign_auto(model: object, topn: int = 10, verbosity: int = 0) -> Dict[int, str]:
+    """assigns dimension names automatically by extracting the most common
+    token in the topic and using that token as the dimension name.
+
+    Arguments:
+
+        model: object. Text2Vec model instance.
+
+        topn: int (default: 10).
+
+    Returns:
+
+        names: dict of dim (int) -> name (str) mappings. Dictionary of names for
+            each dimension.
+
+            Example::
+
+                {
+                    0: "pharmaceuticals",
+                    1: "primary education",
+                    2: "procedural",
+                    ...
+                }
 
     Todos:
-        
-        TODO: this is currently only implemented for LDA models. Implement this
-            method for other models as well.
+
+        TODO: this method is currently only implemented for LDA models.
+            Implement this method for other models as well.
     """
     if str(model) != 'lda':
         raise NotImplementedError
-    embed_names = {}
+    names = {}
     for i in range(model.config['num_topics']):
-        top_words, loadings = zip(*model.model.show_topic(topicid=i, topn=topn))  # top words and loadings.
+        # retrieves top words and loadings.
+        top_words, loadings = zip(*model.model.show_topic(topicid=i, topn=topn))
         if verbosity > 0:
             print('\n------------------\nTopic %d:' % (i))
             print('Top words:', top_words)
             print('Loading:', loadings)
-        embed_names[i] = top_words[0]
-    return embed_names
+        names[i] = top_words[0]
+    return names

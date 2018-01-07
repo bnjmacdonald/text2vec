@@ -1,5 +1,5 @@
 
-"""assigns a name/label to each embedding dimension.
+"""manually assigns a name/label to each embedding dimension.
 
 Todos:
 
@@ -8,9 +8,9 @@ Todos:
 """
 
 import json
-from typing import List, Callable
-import numpy as np
+from typing import List, Callable, Dict
 from pprint import pprint
+import numpy as np
 
 from text2vec.inspect.utils import dim_top_docs, sample_dim_docs
 
@@ -18,12 +18,29 @@ from text2vec.inspect.utils import dim_top_docs, sample_dim_docs
 def assign_manual(outpath: str,
                   dims: List[int],
                   document_ids: np.array,
-                  dictionary: object,
-                  embeddings: list,
+                  ids2tokens: Callable[[List[int]], List[str]],
+                  embeddings: np.ndarray,
                   token_embeddings: list,
-                  document_getter: Callable[[list], List[dict]]) -> dict:
+                  document_getter: Callable[[list], List[dict]]) -> Dict[int, str]:
     """provides a simple command-line interface for assigning embedding
     dimension names manually.
+
+    You are asked to assign a name to each embedding dimension. To decide on a
+    dimension's name, you can choose the following options in the command-line
+    interface:
+
+        [n] assign a name to this dimension \
+        [v] view names of other dimensions \
+        [x] skip to next dimension \
+        [s] sample documents from dimension \
+        [d] view top documents for dimension \
+        [t] view top tokens for dimension \
+        [q] quit
+
+    The names are stored in a dict of dim -> name mappings (e.g. {0:
+    "healthcare", 1: "police violence"}). This dict is saved to `outpath` after
+    every name is assigned, so that you can quit at any time and not lose your
+    progress.
 
     Notes:
 
@@ -43,7 +60,39 @@ def assign_manual(outpath: str,
             saved. If `dim_names.json` already exists, these existing names
             are loaded and will not be overwritten.
 
-        dims:
+        dims: list of int. List of dimensions to name.
+
+        document_ids: np.array (shape: n_documents, ). Array of document _ids
+            that uniquely identify each document.
+
+        ids2tokens: Callable. Callable that takes a list of token _ids as first
+            argument and returns list of str tokens corresponding to these ids.
+
+        embeddings: np.ndarray (shape: n_documents, n_dimensions). np.ndarray
+            of document embeddings. Each row is an embedding vector for a
+            document. Order of rows must correspond to order of document _ids
+            in document_ids.
+
+        token_embeddings: np.ndarray (shape: n_tokens, n_dimensions). np.ndarray
+            of token embeddings. Each row is a single token (e.g. word,
+            character) embedding vector.
+
+        document_getter: Callable. Callable that receives a list of document_ids
+            and retrieves the full document for each _id.
+
+    Returns:
+
+        names: dict of dim (int) -> name (str) mappings. Dictionary of names for
+            each dimension.
+
+            Example::
+
+                {
+                    0: "pharmaceuticals",
+                    1: "primary education",
+                    2: "procedural",
+                    ...
+                }
     """
     topn = 5
     topn_tokens = 20
@@ -61,7 +110,7 @@ def assign_manual(outpath: str,
         'd': lambda dim: document_getter(
             document_ids[dim_top_docs(dim=dim, embeddings=embeddings, topn=topn)]
         ),
-        't': lambda dim: dictionary.ids2tokens(
+        't': lambda dim: ids2tokens(
             dim_top_docs(dim=dim, embeddings=token_embeddings, topn=topn_tokens)
         ),
     }
@@ -71,7 +120,7 @@ def assign_manual(outpath: str,
         \n\t[n] assign a name to this dimension \
         \n\t[v] view names of other dimensions \
         \n\t[x] skip to next dimension \
-        \n\t[s] sample dimension documents \
+        \n\t[s] sample documents from dimension \
         \n\t[d] view top documents for dimension \
         \n\t[t] view top tokens for dimension \
         \n\t[q] quit \
@@ -137,11 +186,13 @@ def assign_name(dim: int, names: dict, outpath: str) -> str:
         print('{0} name for dimension {1} saved to {2}'.format(name, dim, outpath))
     return name
 
+
 def _is_valid_name(name: str) -> bool:
     """checks if user input name is valid."""
     if len(name) == 0:
         return False
     return True
+
 
 def _confirm_name(name: str) -> bool:
     """asks user for confirmation of dimension name."""
@@ -156,4 +207,3 @@ def _confirm_name(name: str) -> bool:
     if confirmed == 'y':
         return True
     return False
-
