@@ -17,9 +17,14 @@ Todos:
         token, rather than simply the most common token. (e.g. tf-idf?)
 """
 
-from typing import Dict
+from typing import Dict, List
+import numpy as np
 
-def assign_auto(model: object, topn: int = 10, verbosity: int = 0) -> Dict[int, Dict[str, str]]:
+def assign_auto(model: object,
+                method: str = 'top',
+                topn: int = 10,
+                unique: bool = False,
+                verbosity: int = 0) -> Dict[int, Dict[str, str]]:
     """assigns dimension names automatically by extracting the most common
     token in the topic and using that token as the dimension name.
 
@@ -27,7 +32,19 @@ def assign_auto(model: object, topn: int = 10, verbosity: int = 0) -> Dict[int, 
 
         model: object. Text2Vec model instance.
 
-        topn: int (default: 10).
+        method: str (default: 'top'). Method to use for assigning the dimension
+            name. Available options:
+
+                top: most frequently occuring word is assigned as the dimension
+                    name.
+                
+                random: a random word among the topn is assigned as the dimension
+                    name.
+        
+        topn: int (default: 10). Only used if method == 'random'.
+
+        unique: bool (default: False). If True, ensures that all dimensions are
+            given a unique name.
 
     Returns:
 
@@ -56,8 +73,12 @@ def assign_auto(model: object, topn: int = 10, verbosity: int = 0) -> Dict[int, 
 
         TODO: this method is currently only implemented for LDA models.
             Implement this method for other models as well.
+
+        TODO: implement use of `unique` argument.
     """
     if str(model) != 'lda':
+        raise NotImplementedError
+    if unique:
         raise NotImplementedError
     names = {}
     for i in range(model.config['num_topics']):
@@ -67,5 +88,22 @@ def assign_auto(model: object, topn: int = 10, verbosity: int = 0) -> Dict[int, 
             print('\n------------------\nTopic %d:' % (i))
             print('Top words:', top_words)
             print('Loading:', loadings)
-        names[i] = {"name": ', '.join(top_words[0:5]), "short_name": top_words[0]}
+        names[i] = {
+            "name": ', '.join(top_words[0:topn]),
+            "short_name": _assign_dim_name(top_words, method, unique, verbosity=verbosity)
+        }
     return names
+
+
+def _assign_dim_name(words: List[str], method: str, unique: bool, verbosity: int = 0) -> str:
+    """Helper method that invokes the appropriate method to retrieve a dimension
+    name. Returns a dimension name.
+    """
+    if unique:
+        raise NotImplementedError
+    if method == 'top':
+        return words[0]
+    elif method == 'random':
+        return np.random.choice(words)
+    else:
+        raise RuntimeError('{0} method not recognized'.format(method))
