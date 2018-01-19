@@ -1,16 +1,16 @@
 # README
 
-This project provides implementations of various methods for converting a chunk of text into a dense vector.
+This project implements various methods for converting a chunk of text into a dense vector (e.g. LDA, LSI, seq2seq, doc2vec, ...) and provides convenient utilities for pre-processing text so that it can be fed to any of these models.
 
-[github](https://github.com/bnjmacdonald/text2vec)
-[documentation]()
+NOTE: this repository is under active development.
 
+## Usage
 
-This library is NOT optimized for memory-efficient handling of large corpuses (e.g. hundreds of millions of documents).
+coming soon...
 
-Terminology:
+## Terminology
 
-TODO: update this terminology to reflect changes.
+TODO: update this terminology to reflect recent changes.
 
 - `documents`: array of strings, dicts, or objects where each element represents a single unprocessed (raw) document. The documents are not tokenized or pre-processed. Example: the text of a news article as a single string.
   - `doc`: a single unprocessed document (e.g. "hi, my name is...").
@@ -33,14 +33,3 @@ Corpus build types:
 
 - `bow`: each document is converted to a "bag of words", consisting of a count of the number of times each word in the corpus appears in the document. By default, bag of words are computed from unigrams.
 - `seq`: each document is converted to a sequence of tokens representing each word in the document. This sequence of tokens retains word order. The sequence can either be right-padded or non-padded. If right-padded, a padding (e.g. zeros) as appended to the end of each sequence so that all documents in the corpus have the same number of tokens (making the corpus rectangular).
-
-## Usage
-
-*NOTE: See `tutorials` for specific examples*
-
-The `text2vec.Text2Vec`
-
-```python
-
-
-```
