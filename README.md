@@ -2,7 +2,7 @@
 
 This project implements various methods for converting a chunk of text into a dense vector (e.g. LDA, LSI, seq2seq, doc2vec, ...) and provides convenient utilities for pre-processing text so that it can be fed to any of these models.
 
-NOTE: this repository is under active development.
+NOTE: this repository is under active development. The current version only implements two simple bag of words models (LDA and LSI) and provides utilities for managing/building corpora and dictionaries. Next step is to refactor deep learning code from my `behavioral styles` project and add it to this repo.
 
 ## Usage
 
