@@ -216,7 +216,7 @@ class Corpus(object):
         if self.builder.fmt == 'seq':
             pad = self.builder.dictionary.token2id['<PAD>']
             max_seqlen = longest_seq
-            if 'max_seqlen' in self.builder.options:
+            if 'max_seqlen' in self.builder.options and self.builder.options['max_seqlen'] is not None:
                 max_seqlen = min(longest_seq, self.builder.options['max_seqlen'])
             f = open(os.path.join(self.path, self.corpus_fname + '.temp'), 'w', encoding='utf-8')
             for i, seq in enumerate(self.stream()):
@@ -251,8 +251,15 @@ class Corpus(object):
                 if len(line) > 0:
                     yield tokens2bow([int(token_id) for token_id in line.split(' ')])
         else:
+            if 'max_seqlen' in self.builder.options and self.builder.options['max_seqlen'] is not None:
+                max_seqlen = self.builder.options['max_seqlen']
+            else:
+                max_seqlen = None
             for line in f0:
                 line = line.strip()
                 if len(line) > 0:
-                    yield [int(token_id) for token_id in line.split(' ')]
+                    if max_seqlen is None:
+                        yield [int(token_id) for token_id in line.split(' ')]
+                    else:
+                        yield [int(token_id) for token_id in line.split(' ')[:max_seqlen]]
         f0.close()
